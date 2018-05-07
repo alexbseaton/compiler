@@ -28,3 +28,11 @@ class TestParser(unittest.TestCase):
 
         tree = compiler.statement(tokens)
         self.assertEqual(expected, tree)
+
+
+    def test_generate_python(self):
+        tree = Tree(compiler.Operator('+', 1, 4), \
+            [Tree(compiler.Number(53, 1, 1), []), \
+            Tree(compiler.Number(2, 1, 6), [])])
+        expected = 'import operator\nprint(operator.add(53, 2))'
+        self.assertEqual(expected, compiler.generate_python(tree))
