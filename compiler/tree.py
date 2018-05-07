@@ -2,14 +2,8 @@ class Tree:
     
 
     def __init__(self, root, subtrees):
-        self._root = root
+        self.root = root
         self.subtrees = subtrees
-
-
-    @property
-    def root(self):
-        #print('Accessing root {}'.format(self._root))
-        return self._root
 
 
     def _pretty(self, n_nestings):
@@ -29,6 +23,10 @@ class Tree:
 
     def __len__(self):
         return 1 + sum(len(tree) for tree in self.subtrees)
+
+
+    def __eq__(self, other):
+        return self.root == other.root and self.subtrees == other.subtrees
 
 
 def breadth_first_search(target, trees=[], starting_tree=None):
