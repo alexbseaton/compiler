@@ -34,11 +34,11 @@ class TestParser(unittest.TestCase):
         tree = Tree(compiler.Operator('+', 1, 4), \
             [Tree(compiler.Number(53, 1, 1), []), \
             Tree(compiler.Number(2, 1, 6), [])])
-        expected = 'import operator\nprint(operator.add(53, 2))'
+        expected = 'print(operator.add(53, 2))'
         self.assertEqual(expected, compiler.generate_python(tree))
 
 
-    def  test_several_statements(self):
+    def test_several_statements_ast(self):
         program = '53+2\n61+54\n'
         tokens = compiler.lex(program)
         tree = compiler.program(tokens)
@@ -53,4 +53,15 @@ class TestParser(unittest.TestCase):
 
         expected = Tree(compiler.Program, [left, right])
 
+        print('Expected: {}\nActual: {}\n'.format(expected, tree))
+
         self.assertEqual(expected, tree)
+
+
+    def test_several_statements_python(self):
+        program = '53+2\n61+54\n'
+        tokens = compiler.lex(program)
+        tree = compiler.program(tokens)
+        python = compiler.generate_python(tree)
+        expected = 'import operator\nprint(operator.add(53, 2))\nprint(operator.add(61, 54))'
+        self.assertEqual(expected, python)

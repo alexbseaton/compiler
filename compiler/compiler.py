@@ -123,13 +123,12 @@ def separator(tokens, tree):
 
 
 def generate_python(tree):
-    return 'import operator\nprint({})'.format( _generate_python(tree))
-
-
-def _generate_python(tree):
-    if isinstance(tree.root, Operator):
-        return 'operator.add({}, {})'.format(_generate_python(tree.subtrees[0]), _generate_python(tree.subtrees[1]))
+    if tree.root == Program:
+        return 'import operator\n' + '\n'.join(generate_python(subtree) for subtree in tree.subtrees)
+    elif isinstance(tree.root, Operator):
+        return 'print(operator.add({}, {}))'.format(generate_python(tree.subtrees[0]), generate_python(tree.subtrees[1]))
     elif isinstance(tree.root, Number):
         return str(tree.root.value)
+    raise Exception('Couldn\'t generate Python for tree {}\n'.format(tree))
 
     
