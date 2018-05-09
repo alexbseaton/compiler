@@ -36,6 +36,9 @@ class Operator(Token):
     def __init__(self, value, n_line, n_char):
         super(Operator, self).__init__(value, n_line, n_char)
 
+class Program:
+    pass
+
 
 types = [Number, Separator, Operator]
 
@@ -72,11 +75,25 @@ def accept(symbol, token):
     return re.fullmatch(symbol.pattern, token.value)
 
 
-def statement(tokens, tree=Tree(None, [])):
+def program(tokens, tree=None):
+    if tree is None:
+        tree = Tree(Program, [])
+    if not tokens:
+        return tree
+    res_tokens, res_tree = statement(tokens)
+    tree.subtrees.append(res_tree)
+    if res_tokens:
+        program(res_tokens, tree)
+    return tree
+
+
+def statement(tokens, tree=None):
+    if tree is None:
+        tree = Tree(None, [])
     current = tokens[0]
     if accept(Number, current):
         res_tokens, res_tree = separator(*operator(*number(tokens, tree)))
-        return tree
+        return res_tokens, tree
     else:
         raise Exception('Parse error in statement. Expected Literal but was {}'.format(current))
 
