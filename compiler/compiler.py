@@ -28,7 +28,7 @@ class Number(Token):
 class Separator(Token):
     pattern = r'\n'
     def __init__(self, value, n_line, n_char):
-        super(Separator, self).__init__(value, n_line, n_char)
+        super(Separator, self).__init__(None, n_line, n_char)
 
 
 class Operator(Token):
@@ -38,21 +38,25 @@ class Operator(Token):
 
 
 class Let(Token):
-    pattern = 'let'
+    pattern = r'let'
     def __init__(self, value, n_line, n_char):
-        super(Let, self).__init__(value, n_line, n_char)
+        super(Let, self).__init__(None, n_line, n_char)
 
 
 class Be(Token):
-    pattern = 'be'
+    pattern = r'be'
     def __init__(self, value, n_line, n_char):
-        super(Be, self).__init__(value, n_line, n_char)
+        super(Be, self).__init__(None, n_line, n_char)
 
 
 class Variable(Token):
-    pattern = '/^[A-Z]+$/i' # alphabetical
+    pattern = r'[a-zA-Z]' # alphabetical, only English alphabet, single character (for now)
     def __init__(self, value, n_line, n_char):
         super(Variable, self).__init__(value, n_line, n_char)
+
+# FIXME we need a way to abstract over variables and numbers, since they can be used in the same places
+
+
 
 
 
@@ -60,7 +64,7 @@ class Program:
     pass
 
 
-types = [Number, Separator, Operator]
+types = [Number, Separator, Operator, Let, Be, Variable]
 
 
 def lex(program):
@@ -68,8 +72,6 @@ def lex(program):
     current_token = None
     n_line = 1
     n_char = 1
-    l = [w for w in re.split('(\W+)', program)]
-    print(l)
     for s in [w for w in re.split('(\W+)', program)]:
         stripped = s.strip(' ') 
         if not stripped:
@@ -94,7 +96,7 @@ def lex(program):
 
 
 def accept(symbol, token):
-    return re.fullmatch(symbol.pattern, token.value)
+    return isinstance(token, symbol) # Eww. FIXME.
 
 
 def program(tokens, tree=None):
@@ -117,11 +119,33 @@ def statement(tokens, tree=None):
     if accept(Number, current):
         res_tokens, res_tree = separator(*operator(*number(tokens, tree)))
         return res_tokens, tree
+    elif accept(Variable, current):
+        res_tokens, res_tree = separator(*operator(*variable(tokens, tree)))
+        return res_tokens, tree
     elif accept(Let, current):
-        res_tokens, res_tree = number(*let(tokens, tree))
+        res_tokens, res_tree = separator(*number(*let(tokens, tree)))
         return res_tokens, res_tree
     else:
         raise Exception('Parse error in statement. Expected Literal but was {}'.format(current))
+
+
+def variable(tokens, tree):
+    current = tokens[0]
+    if accept(Variable, current):
+        tree.subtrees.append(Tree(current, []))
+        return tokens[1:], tree
+    raise Exception('Parse error in variable. Expected Literal but was {}'.format(current))
+
+
+def let(tokens, tree):
+    current = tokens[0]
+    if accept(Let, current):
+        tree.root = current
+        # TODO check the syntax is let a be
+        tree.subtrees = [Tree(tokens[1], [])]
+        return tokens[3:], tree
+    else:
+        raise Exception('Parse error in let')
 
 
 def operator(tokens, tree):
@@ -152,9 +176,14 @@ def generate_python(tree):
     if tree.root == Program:
         return 'import operator\n' + '\n'.join(generate_python(subtree) for subtree in tree.subtrees)
     elif isinstance(tree.root, Operator):
-        return 'print(operator.add({}, {}))'.format(generate_python(tree.subtrees[0]), generate_python(tree.subtrees[1]))
+        return 'print(operator.add({}, {}))'.format(*(generate_python(s) for s in tree.subtrees))
     elif isinstance(tree.root, Number):
         return str(tree.root.value)
+    elif isinstance(tree.root, Variable):
+        return tree.root.value
+    elif isinstance(tree.root, Let):
+        return '{} = {}'.format(*(generate_python(s) for s in tree.subtrees))
+
     raise Exception('Couldn\'t generate Python for tree {}\n'.format(tree))
 
 

@@ -7,14 +7,20 @@ class TestLex(unittest.TestCase):
 
     def test(self):
         program = '53 + 2\n'
-        expected = [compiler.Number('53', 1, 1), compiler.Operator('+', 1, 4), compiler.Number('2', 1, 6), compiler.Separator('\n', 1, 7)]
+        expected = [compiler.Number('53', 1, 1), compiler.Operator('+', 1, 4), compiler.Number('2', 1, 6), compiler.Separator(None, 1, 7)]
         actual = compiler.lex(program)
         self.assertEqual(expected, actual)
 
 
     def test_assignment(self):
         program = 'let a be 53\n'
+        expected = [compiler.Let(None, 1, 1),\
+          compiler.Variable('a', 1, 5),\
+          compiler.Be(None, 1, 7),\
+          compiler.Number('53', 1, 10),\
+          compiler.Separator(None, 1, 12)]
         print(compiler.lex(program))
+        self.assertEqual(expected, compiler.lex(program))
 
 
 class TestParser(unittest.TestCase):
@@ -26,7 +32,7 @@ class TestParser(unittest.TestCase):
 
     
     def test_create_ast(self):
-        tokens = [compiler.Number('53', 1, 1), compiler.Operator('+', 1, 4), compiler.Number('2', 1, 6), compiler.Separator('\n', 1, 7)]
+        tokens = [compiler.Number('53', 1, 1), compiler.Operator('+', 1, 4), compiler.Number('2', 1, 6), compiler.Separator(None, 1, 7)]
         expected = Tree(compiler.Operator('+', 1, 4), \
             [Tree(compiler.Number(53, 1, 1), []), \
             Tree(compiler.Number(2, 1, 6), [])])
@@ -71,7 +77,7 @@ class TestParser(unittest.TestCase):
 
 
     def test_variables(self):
-        program = 'let a be 53\na+2'
+        program = 'let a be 53\na+2\n'
         expected = 'import operator\na = 53\nprint(operator.add(a, 2))'
         actual = compiler.compile(program)
         self.assertEqual(expected, actual)
