@@ -36,6 +36,26 @@ class Operator(Token):
     def __init__(self, value, n_line, n_char):
         super(Operator, self).__init__(value, n_line, n_char)
 
+
+class Let(Token):
+    pattern = 'let'
+    def __init__(self, value, n_line, n_char):
+        super(Let, self).__init__(value, n_line, n_char)
+
+
+class Be(Token):
+    pattern = 'be'
+    def __init__(self, value, n_line, n_char):
+        super(Be, self).__init__(value, n_line, n_char)
+
+
+class Variable(Token):
+    pattern = '/^[A-Z]+$/i' # alphabetical
+    def __init__(self, value, n_line, n_char):
+        super(Variable, self).__init__(value, n_line, n_char)
+
+
+
 class Program:
     pass
 
@@ -47,26 +67,28 @@ def lex(program):
     res = []
     current_token = None
     n_line = 1
-    n_char = 0
-    for s in program:
-        n_char += 1
-        if current_token == Number and re.fullmatch(Number.pattern, s):
-            res[-1].value = res[-1].value + s
-        elif s == ' ':
-            current_token = None
+    n_char = 1
+    l = [w for w in re.split('(\W+)', program)]
+    print(l)
+    for s in [w for w in re.split('(\W+)', program)]:
+        stripped = s.strip(' ') 
+        if not stripped:
+            n_char += len(s)
             continue
-        else:
-            candidates = [t for t in types if re.fullmatch(t.pattern, s)]
-            if not candidates:
-                raise Exception('Invalid symbol', s)
-            elif len(candidates) > 1:
-                raise Exception('Ambiguous symbol. {} matched {}'.format(s, candidates))
-            res.append(candidates[0](s, n_line, n_char))
-            current_token = candidates[0]
+
+        candidates = [t for t in types if re.fullmatch(t.pattern, stripped)]
+        if not candidates:
+            raise Exception('Invalid symbol', s)
+        elif len(candidates) > 1:
+            raise Exception('Ambiguous symbol. {} matched {}'.format(stripped, candidates))
+        res.append(candidates[0](stripped, n_line, n_char + len(s) - len(s.lstrip(' '))))
+        current_token = candidates[0]
 
         if s == '\n':
-            n_char = 0
+            n_char = 1
             n_line += 1
+        else:
+            n_char += len(s)
 
     return res
 
@@ -90,10 +112,14 @@ def program(tokens, tree=None):
 def statement(tokens, tree=None):
     if tree is None:
         tree = Tree(None, [])
+
     current = tokens[0]
     if accept(Number, current):
         res_tokens, res_tree = separator(*operator(*number(tokens, tree)))
         return res_tokens, tree
+    elif accept(Let, current):
+        res_tokens, res_tree = number(*let(tokens, tree))
+        return res_tokens, res_tree
     else:
         raise Exception('Parse error in statement. Expected Literal but was {}'.format(current))
 
@@ -130,5 +156,11 @@ def generate_python(tree):
     elif isinstance(tree.root, Number):
         return str(tree.root.value)
     raise Exception('Couldn\'t generate Python for tree {}\n'.format(tree))
+
+
+def compile(text):
+    tokens = lex(text)
+    ast = program(tokens)
+    return generate_python(ast)
 
     

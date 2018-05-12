@@ -12,6 +12,11 @@ class TestLex(unittest.TestCase):
         self.assertEqual(expected, actual)
 
 
+    def test_assignment(self):
+        program = 'let a be 53\n'
+        print(compiler.lex(program))
+
+
 class TestParser(unittest.TestCase):
 
     def test_invalid_statement(self):
@@ -60,8 +65,13 @@ class TestParser(unittest.TestCase):
 
     def test_several_statements_python(self):
         program = '53+2\n61+54\n'
-        tokens = compiler.lex(program)
-        tree = compiler.program(tokens)
-        python = compiler.generate_python(tree)
+        python = compiler.compile(program)
         expected = 'import operator\nprint(operator.add(53, 2))\nprint(operator.add(61, 54))'
         self.assertEqual(expected, python)
+
+
+    def test_variables(self):
+        program = 'let a be 53\na+2'
+        expected = 'import operator\na = 53\nprint(operator.add(a, 2))'
+        actual = compiler.compile(program)
+        self.assertEqual(expected, actual)
